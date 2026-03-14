@@ -88,8 +88,8 @@ function reservations_install() {
     // TEMPLATES ERSTELLEN
 	// Template Gruppe für jedes Design erstellen
     $templategroup = array(
-        "prefix" => "applicationmanager",
-        "title" => $db->escape_string("Bewerbungs-Manager"),
+        "prefix" => "reservations",
+        "title" => $db->escape_string("Reservierungs-Manager"),
     );
     $db->insert_query("templategroups", $templategroup);
     // Templates 
@@ -1914,7 +1914,7 @@ function reservations_admin_update_plugin(&$table) {
 // EIGENE SEITE
 function reservations_misc() {
 
-    global $db, $mybb, $lang, $templates, $theme, $header, $headerinclude, $footer, $page, $reservations_output, $infotext, $reservations_form, $reservations_blocked;
+    global $db, $mybb, $lang, $templates, $theme, $header, $headerinclude, $footer, $lists_menu, $page, $reservations_output, $infotext, $reservations_form, $reservations_blocked;
 
     // return if the action key isn't part of the input
     $allowed_actions = [
@@ -2177,7 +2177,7 @@ function reservations_misc() {
     if ($mybb->get_input('action') == "reservations") {
 
 		// Listenmenü
-		if($listsmenu != 0){
+		if($listsmenu != 2){
             // Jules Plugin
             if ($listsmenu == 1) {
                 $lang->load("lists");
