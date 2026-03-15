@@ -2429,7 +2429,8 @@ function reservations_global() {
     $reservations_team = "";
     if($mybb->usergroup['cancp'] == 1) {
         $count_oldAccs = $db->num_rows($db->query("SELECT uid FROM ".TABLE_PREFIX."reservations
-        WHERE uid NOT IN (SELECT uid FROM ".TABLE_PREFIX."users);
+        WHERE uid NOT IN (SELECT uid FROM ".TABLE_PREFIX."users)
+        AND uid != 0
         "));
 
         $bannertext = "";
@@ -2575,6 +2576,8 @@ function reservations_modcp() {
                 $remainingDays = "";
                 $profilelink = "";
                 $return = "";
+                $reservations_entry_endDate = "";
+                $reservations_entry_remainingDays = "";
         
                 // Mit Infos füllen
                 $rid = $res['rid'];
@@ -2590,8 +2593,8 @@ function reservations_modcp() {
                 $lockdate = $lockDate->format('d.m.Y');
                 $diff = $lockDate->diff($today);
                 $remainingDays = (int)$diff->format('%a');
-                $lang->reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lockdate);
-                $lang->reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
+                $reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lockdate);
+                $reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
 
                 // Löschlink eigene Reservierung verstecken 
                 $deleteNotice = $lang->sprintf($lang->reservations_blocked_delete_notice, $reservation);
@@ -3809,7 +3812,7 @@ function reservations_usergroups_output($rtid) {
 
     global $db;
 
-    $rtid = $rtid;
+    $rtid = (int)$rtid;
 
     // Alle Gruppenberechtigungen des Typs
     $query_grouppermissions = $db->query("SELECT rgid, name, disporder FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -3819,14 +3822,9 @@ function reservations_usergroups_output($rtid) {
 
     $permissions = array(); // rgid => ['name' => ..., 'disporder' => ...]
     while ($group = $db->fetch_array($query_grouppermissions)) {
-        $disporder = null;
-        if (isset($group['disporder'])) {
-            $disporder = $group['disporder'];
-        }
-
-        $permissions[$group['rgid']] = array(
+        $permissions[(int)$group['rgid']] = array(
             'name'      => $group['name'],
-            'disporder' => $disporder
+            'disporder' => (int)$group['disporder']
         );
     }
 
@@ -3834,14 +3832,13 @@ function reservations_usergroups_output($rtid) {
         return array();
     }
 
-    $map  = array();
-    $used = array();
+    $entries = array();
+    $used    = array();
 
     // Condensed-Gruppen
-    $typeCondensed = $db->fetch_field($db->simple_select("reservations_types", "condensedgroups", "rtid = ".$rtid.""), "condensedgroups");
+    $typeCondensed = $db->fetch_field($db->simple_select("reservations_types", "condensedgroups", "rtid = ".$rtid), "condensedgroups");
 
     if (!empty($typeCondensed)) {
-
         $lines = preg_split('/\r\n|\r|\n/', trim($typeCondensed));
 
         foreach ($lines as $line) {
@@ -3852,8 +3849,9 @@ function reservations_usergroups_output($rtid) {
 
             $parts = explode(',', $line);
             $ids   = array();
+
             foreach ($parts as $part) {
-                $id = (int)$part;
+                $id = (int)trim($part);
                 if (isset($permissions[$id])) {
                     $ids[] = $id;
                 }
@@ -3863,22 +3861,60 @@ function reservations_usergroups_output($rtid) {
                 continue;
             }
 
+            $ids = array_values(array_unique($ids));
+
+            usort($ids, function($a, $b) use ($permissions) {
+                $dispA = $permissions[$a]['disporder'];
+                $dispB = $permissions[$b]['disporder'];
+
+                if ($dispA == $dispB) {
+                    return strcasecmp($permissions[$a]['name'], $permissions[$b]['name']);
+                }
+
+                return $dispA - $dispB;
+            });
+
             $names = array();
             foreach ($ids as $id) {
                 $names[]   = $permissions[$id]['name'];
                 $used[$id] = true;
             }
 
-            $key = implode(',', $ids);
-            $map[$key] = implode(' &amp; ', $names);
+            $sortorder = $permissions[$ids[0]]['disporder'];
+
+            $entries[] = array(
+                'key'       => implode(',', $ids),
+                'label'     => implode(' &amp; ', $names),
+                'disporder' => $sortorder,
+                'name'      => $permissions[$ids[0]]['name']
+            );
         }
     }
 
     // übrige Einzelgruppen
     foreach ($permissions as $rgid => $perm) {
         if (!isset($used[$rgid])) {
-            $map[(string)$rgid] = $perm['name'];
+            $entries[] = array(
+                'key'       => (string)$rgid,
+                'label'     => $perm['name'],
+                'disporder' => $perm['disporder'],
+                'name'      => $perm['name']
+            );
         }
+    }
+
+    // Gesamtausgabe sortieren
+    usort($entries, function($a, $b) {
+        if ($a['disporder'] == $b['disporder']) {
+            return strcasecmp($a['name'], $b['name']);
+        }
+
+        return $a['disporder'] - $b['disporder'];
+    });
+
+    $map = array();
+    foreach ($entries as $entry) {
+        $map[$entry['key']] = $entry['label'];
     }
 
     return $map;
@@ -3956,6 +3992,10 @@ function reservations_user_entry($res, $return = '') {
     $wanted = "";
     $endlessNote = "";
     $byUser = "";
+    $optionExtend = "";
+    $optionDelete = "";
+    $reservations_entry_endDate = "";
+    $reservations_entry_remainingDays = "";
 
     // Mit Infos füllen
     $rid = $res['rid'];
@@ -3975,7 +4015,7 @@ function reservations_user_entry($res, $return = '') {
 
     // endlosse reservierung
     if ($endlessNote == 1) {
-        $lang->reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lang->reservations_entry_openend);
+        $reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lang->reservations_entry_openend);
         $remainingDays = "";
     } else {
         // Enddatum & verbleibende Tage
@@ -3985,8 +4025,8 @@ function reservations_user_entry($res, $return = '') {
         $diff = $endDate->diff($today);
         $remainingDays = (int)$diff->format('%a');
 
-        $lang->reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $enddate);
-        $lang->reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
+        $reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $enddate);
+        $reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
     }
 
     // User bauen
@@ -4142,6 +4182,8 @@ function reservations_blocked($label = 'showthread') {
             $remainingDays = "";
             $profilelink = "";
             $return = "";
+            $reservations_entry_endDate = "";
+            $reservations_entry_remainingDays = "";
         
             // Mit Infos füllen
             $rid = $res['rid'];
@@ -4157,8 +4199,8 @@ function reservations_blocked($label = 'showthread') {
             $lockdate = $lockDate->format('d.m.Y');
             $diff = $lockDate->diff($today);
             $remainingDays = (int)$diff->format('%a');
-            $lang->reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lockdate);
-            $lang->reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
+            $reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lockdate);
+            $reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
 
             // Löschlink eigene Reservierung verstecken
             $deleteNotice = $lang->sprintf($lang->reservations_blocked_delete_notice, $reservation);
@@ -4361,6 +4403,8 @@ function reservations_ownreservations($uid) {
             $extension = "";
             $endDate = "";    
             $remainingDays = "";
+            $reservations_entry_endDate = "";
+            $reservations_entry_remainingDays = "";
 
             // Mit Infos füllen
             $rid = $res['rid'];
@@ -4373,8 +4417,8 @@ function reservations_ownreservations($uid) {
             $enddate = $endDate->format('d.m.Y');
             $diff = $endDate->diff($today);
             $remainingDays = (int)$diff->format('%a');
-            $lang->reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $enddate);
-            $lang->reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
+            $reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $enddate);
+            $reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
 
            eval("\$reservations .= \"".$templates->get("reservations_own_reservations")."\";");       
         }
@@ -4699,7 +4743,7 @@ function reservations_templates($mode = '') {
         'title'		=> 'reservations_blocked_reservations',
         'template'	=> $db->escape_string('<div class="reservations_entry">
         <b>{$reservation}</b> {$byUser}<br>
-        {$lang->reservations_entry_endDate} » {$lang->reservations_entry_remainingDays}
+        {$reservations_entry_endDate} » {$reservations_entry_remainingDays}
         <a href="misc.php?action=reservationsBlocked_delete&rid={$rid}&return={$return}" onclick="return confirm(\'{$deleteNotice}\');" {$deleteLink}>{$lang->reservations_blocked_delete}</a>
         </div>'),
         'sid'		=> '-2',
@@ -4779,7 +4823,7 @@ function reservations_templates($mode = '') {
         'title'		=> 'reservations_output_entry',
         'template'	=> $db->escape_string('<div class="reservations_entry">
         <div class="reservations_entry-res"><b>{$reservation}</b> {$byUser} <span class="smalltext">{$optionExtend} {$optionDelete}</span></div>
-        <div class="reservations_entry-info">{$lang->reservations_entry_endDate} » {$lang->reservations_entry_remainingDays}<br>{$wanted}</div>
+        <div class="reservations_entry-info">{$reservations_entry_endDate} » {$reservations_entry_remainingDays}<br>{$wanted}</div>
         </div>'),
         'sid'		=> '-2',
         'version'	=> '',
@@ -4847,9 +4891,9 @@ function reservations_templates($mode = '') {
 
     $templates[] = array(
         'title'		=> 'reservations_own',
-        'template'	=> $db->escape_string('<div class="reservations_ownreservations">
-        <div class="reservations_headline tcat">{$lang->reservations_own}</div>
-        <div class="reservations_ownreservations-types">
+        'template'	=> $db->escape_string('<div class="reservations_ownreservations tborder">
+        <div class="reservations_headline thead">{$lang->reservations_own}</div>
+        <div class="reservations_ownreservations-types trow1">
 		{$types}
 		<div class="reservations_ownreservationsBit">
 			<div class="reservations_ownreservations-title trow2">{$lang->reservations_own_blocked}</div>
@@ -4866,7 +4910,7 @@ function reservations_templates($mode = '') {
         'title'		=> 'reservations_own_reservations',
         'template'	=> $db->escape_string('<div class="reservations_entry">
         <b>{$reservation}</b><br>
-        {$lang->reservations_entry_endDate} » {$lang->reservations_entry_remainingDays}
+        {$reservations_entry_endDate} » {$reservations_entry_remainingDays}
         </div>'),
         'sid'		=> '-2',
         'version'	=> '',
