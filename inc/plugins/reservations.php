@@ -3,6 +3,9 @@
  * Reservierungs-Manager  - by little.evil.genius
  * https://github.com/little-evil-genius/Reservierungs-Manager
  * https://storming-gates.de/member.php?action=profile&uid=1712
+ * Dieses Plugin erweitert MyBB um ein flexibles Reservierungssystem. 
+ * Es ermöglicht, Reservierungen für verschiedene Kategorien - beispielsweise Avatarpersonen, Nachnamen, Canon-Charaktere oder andere forumsspezifische Inhalte - zentral zu verwalten. 
+ * Reservierungen laufen automatisch nach einer festgelegten Frist ab und werden selbstständig entfernt, sodass das Team keine manuelle Kontrolle oder Pflege übernehmen muss.
 */
 
 // Direktzugriff auf die Datei aus Sicherheitsgründen sperren
@@ -617,6 +620,7 @@ function reservations_admin_manage() {
                     $insert_reservations_type = array(
                         "identification" => $db->escape_string($mybb->get_input('identification')),
                         "title" => $db->escape_string($mybb->get_input('title')),
+                        "description" => $db->escape_string($mybb->get_input('description')),
                         "disporder" => (int)$mybb->get_input('disporder'),
                         "gender" => (int)$mybb->get_input('gender'),
                         "checkoption" => (int)$mybb->get_input('checking'),
@@ -667,6 +671,12 @@ function reservations_admin_manage() {
                 $lang->reservations_types_form_title,
                 $lang->reservations_types_form_title_desc,
                 $form->generate_text_box('title', $mybb->get_input('title'))
+            );
+
+            $form_container->output_row(
+                $lang->reservations_types_form_description,
+                $lang->reservations_types_form_description_desc,
+                $form->generate_text_box('description', $mybb->get_input('description'))
             );
 
             $form_container->output_row(
@@ -751,6 +761,7 @@ function reservations_admin_manage() {
 
                     $update_reservations_type = array(
                         "title" => $db->escape_string($mybb->get_input('title')),
+                        "description" => $db->escape_string($mybb->get_input('description')),
                         "disporder" => (int)$mybb->get_input('disporder'),
                         "gender" => (int)$mybb->get_input('gender'),
                         "checkoption" => (int)$mybb->get_input('checking'),
@@ -784,6 +795,7 @@ function reservations_admin_manage() {
 			if (isset($errors)) {
 				$page->output_inline_error($errors);
 				$title = $mybb->get_input('title');
+				$description = $mybb->get_input('description');
 				$disporder = $mybb->get_input('disporder', MyBB::INPUT_INT);
 				$gender = $mybb->get_input('gender', MyBB::INPUT_INT);
 				$checkoption = $mybb->get_input('checking', MyBB::INPUT_INT);
@@ -792,6 +804,7 @@ function reservations_admin_manage() {
 				$groupsplit = $mybb->get_input('groupsplit', MyBB::INPUT_INT);
 			} else {
 				$title = $type['title'];
+				$description = $type['description'];
 				$disporder = (int)$type['disporder'];
 				$gender = (int)$type['gender'];
 				$checkoption = (int)$type['checkoption'];
@@ -810,6 +823,12 @@ function reservations_admin_manage() {
                 $lang->reservations_types_form_title,
                 $lang->reservations_types_form_title_desc,
                 $form->generate_text_box('title', $title)
+            );
+
+            $form_container->output_row(
+                $lang->reservations_types_form_description,
+                $lang->reservations_types_form_description_desc,
+                $form->generate_text_box('description', $description)
             );
 
             $form_container->output_row(
@@ -3466,6 +3485,7 @@ function reservations_output_formular_misc($typeInput = '', $reservationInput = 
         // leer laufen lassen
         $rtid = "";
         $title = "";
+        $description = "";
         $gender = "";
         $identification = "";
         $wantedUrl = 0;
@@ -3473,6 +3493,7 @@ function reservations_output_formular_misc($typeInput = '', $reservationInput = 
         // mit Infos füllen
         $rtid = $typ['rtid'];
         $title = $typ['title'];
+        $description = $typ['description'];
         $gender = $typ['gender'];
         $identification = $typ['identification'];
         if ($identification == $mybb->settings['reservations_searchtyp']) {
@@ -3492,10 +3513,10 @@ function reservations_output_formular_misc($typeInput = '', $reservationInput = 
         
         if (is_member($usergroupIDs)) {
             if ($typeInput == $rtid) {
-                $type_select .= "<option value=\"".$rtid."\" data-has-gender=\"".$gender."\" data-has-wanted-url=\"".$wantedUrl."\" selected>".$title."</option>"; 
-            } else {
-                $type_select .= "<option value=\"".$rtid."\" data-has-gender=\"".$gender."\" data-has-wanted-url=\"".$wantedUrl."\">".$title."</option>";   
-            }                  
+                $type_select .= "<option value=\"{$rtid}\" data-has-gender=\"{$gender}\" data-has-wanted-url=\"{$wantedUrl}\" data-description=\"{$description}\" selected>{$title}</option>";
+                } else {
+                $type_select .= "<option value=\"{$rtid}\" data-has-gender=\"{$gender}\" data-has-wanted-url=\"{$wantedUrl}\" data-description=\"{$description}\">{$title}</option>";    
+            }                
         }
     }
 
@@ -3549,6 +3570,7 @@ function reservations_output_formular_showthread($typeInput = '', $reservationIn
         // leer laufen lassen
         $rtid = "";
         $title = "";
+        $description = "";
         $gender = "";
         $identification = "";
         $wantedUrl = 0;
@@ -3557,15 +3579,16 @@ function reservations_output_formular_showthread($typeInput = '', $reservationIn
         $rtid = $typ['rtid'];
         $title = $typ['title'];
         $gender = $typ['gender'];
+        $description = $typ['description'];
         $identification = $typ['identification'];
         if ($identification == $mybb->settings['reservations_searchtyp']) {
             $wantedUrl = 1;
         }
 
         if ($typeInput == $rtid) {
-            $type_select .= "<option value=\"".$rtid."\" data-has-gender=\"".$gender."\" data-has-wanted-url=\"".$wantedUrl."\" selected>".$title."</option>"; 
+            $type_select .= "<option value=\"{$rtid}\" data-has-gender=\"{$gender}\" data-has-wanted-url=\"{$wantedUrl}\" data-description=\"{$description}\" selected>{$title}</option>";
         } else {
-            $type_select .= "<option value=\"".$rtid."\" data-has-gender=\"".$gender."\" data-has-wanted-url=\"".$wantedUrl."\">".$title."</option>";   
+            $type_select .= "<option value=\"{$rtid}\" data-has-gender=\"{$gender}\" data-has-wanted-url=\"{$wantedUrl}\" data-description=\"{$description}\">{$title}</option>";    
         } 
     }
 
@@ -3590,19 +3613,26 @@ function reservations_validate_entry() {
 
         // Spielername
         if ($uid == 0) {
-        $playername = $mybb->get_input('playername');
-        if (empty($playername)) {
-            $errors[] = $lang->reservations_form_error_playername;
+            $playername = $mybb->get_input('playername');
+            if (empty($playername)) {
+                $errors[] = $lang->reservations_form_error_playername;
+            }
         }
-    }
     } 
     // Showthread
     else {
-        $playerUID = $db->fetch_field($db->query("SELECT uid FROM ".TABLE_PREFIX."users WHERE username = '".$db->escape_string($mybb->get_input('playername'))."'"), "uid");
-        if (!empty($playerUID)) {
-            $uid = $playerUID;
+        $playername = $db->escape_string($mybb->get_input('playername'));
+
+        if (empty($playername)) {
+            $errors[] = $lang->reservations_form_error_playername;
         } else {
-            $uid = 0;
+            $playerUID = $db->fetch_field($db->query("SELECT uid FROM ".TABLE_PREFIX."users WHERE username = '".$playername."'"), "uid");
+            
+            if (!empty($playerUID)) {
+                $uid = $playerUID;
+            } else {
+                $uid = 0;
+            }
         }
     }
 
@@ -4475,6 +4505,7 @@ function reservations_database() {
             `rtid` int(10) unsigned NOT NULL AUTO_INCREMENT,
             `identification` VARCHAR(500) NOT NULL,
             `title` varchar(500) NOT NULL,
+            `description` varchar(500) NOT NULL,
             `disporder` int(10) unsigned NOT NULL DEFAULT '0',
             `gender` int(1) unsigned NOT NULL DEFAULT '0',
             `checkoption` int(1) unsigned NOT NULL DEFAULT '0',
@@ -4617,7 +4648,7 @@ function reservations_settings($type = 'install') {
         ),
         'reservations_global' => array(
             'title' => 'Anzeige eigener Reservierungen',
-            'description' => 'Soll es eine globale Variable geben, die die eigenen Reservierungen ausliest?',
+            'description' => 'Soll es eine globale Variable geben, die die eigenen Reservierungen ausliest?<br>{$mybb->user[\'ownreservations\']}',
             'optionscode' => 'yesno',
             'value' => '0', // Default
             'disporder' => 12
@@ -4965,33 +4996,37 @@ function reservations_templates($mode = '') {
 			<div class="reservations_formular-label">{$lang->reservations_form_type}</div>
 			<div class="reservations_formular-select">
 				<select id="type" name="type">
-				<option value="">{$lang->reservations_form_type_select}</option>
-				{$type_select}
+					<option value="">{$lang->reservations_form_type_select}</option>
+					{$type_select}
 				</select>
 			</div>
 		</div>
-		
+
 		<div class="reservations_formular-input">
 			<div class="reservations_formular-label">{$lang->reservations_form_reservation}</div>
-			<div class="reservations_formular-field"><input type="text" name="reservation" id="reservation" placeholder="{$lang->reservations_form_reservation_placeholder}" value="{$reservationInput}" class="textbox" required></div>
+			<div class="reservations_formular-field">
+				<input type="text" name="reservation" id="reservation" placeholder="{$lang->reservations_form_reservation_placeholder}" value="{$reservationInput}" class="textbox">
+				<div class="smalltext" id="typeDescription">{$description}</div>
+			</div>
 		</div>
 
-		<div class="reservations_formular-input" id="gender" style="display: none;">
+		<div class="reservations_formular-input" id="genderFieldWrapper" style="display: none;">
 			<div class="reservations_formular-label">{$lang->reservations_form_gender}</div>
 			<div class="reservations_formular-select">
 				<select id="gender" name="gender">
-				<option value="">{$lang->reservations_form_gender_select}</option>
-				{$gender_select}
-			</select>
+					<option value="">{$lang->reservations_form_gender_select}</option>
+					{$gender_select}
+				</select>
 			</div>
 		</div>
-		
-		<div class="reservations_formular-input" id="wantedUrl" style="display: none;">
+
+		<div class="reservations_formular-input" id="wantedUrlFieldWrapper" style="display: none;">
 			<div class="reservations_formular-label">Link zum Gesuch:</div>
 			<div class="reservations_formular-field">
-				<input type="url" name="wantedUrl" id="wantedUrl" placeholder="https://" value="{$wantedUrlInput}" pattern="https://.*" class="textbox" /></div>
+				<input type="url" name="wantedUrl" id="wantedUrl" placeholder="https://" value="{$wantedUrlInput}" pattern="https://.*" class="textbox" />
+			</div>
 		</div>
-		
+
 		<div class="reservations_formular-input" {$playernameDisplay}>
 			<div class="reservations_formular-label">{$lang->reservations_form_player_misc}</div>
 			<div class="reservations_formular-field">{$playernameInput}</div>
@@ -5042,52 +5077,54 @@ function reservations_templates($mode = '') {
         'title'		=> 'reservations_showthread_formular',
         'template'	=> $db->escape_string('<div class="reservations_formularShowthread"> 
         <form action="showthread.php?tid={$tid}" method="post">
-        <input type="hidden" name="my_post_key" value="{$mybb->post_code}" />
+		<input type="hidden" name="my_post_key" value="{$mybb->post_code}" />
 
-        <div class="reservations_formular-input">
-            <div class="reservations_formular-label">{$lang->reservations_form_type}</div>
-            <div class="reservations_formular-select">
-                <select id="type" name="type">
-                    <option value="">{$lang->reservations_form_type_select}</option>
-                    {$type_select}
-                </select>
-            </div>
-        </div>
-
-        <div class="reservations_formular-input">
-            <div class="reservations_formular-label">{$lang->reservations_form_reservation}</div>
-            <div class="reservations_formular-field">
-                <input type="text" name="reservation" id="reservation" value="{$reservationInput}" placeholder="{$lang->reservations_form_reservation_placeholder}" class="textbox" required>
-            </div>
-        </div>
-
-        <div class="reservations_formular-input" id="gender" style="display: none;">
-            <div class="reservations_formular-label">{$lang->reservations_form_gender}</div>
-            <div class="reservations_formular-select">
-                <select id="gender" name="gender">
-                    <option value="">{$lang->reservations_form_gender_select}</option>
-                    {$gender_select}
-                </select>
-            </div>
-        </div>
-		
-		<div class="reservations_formular-input" id="wantedUrl" style="display: none;">
-			<div class="reservations_formular-label">Link zum Gesuch:</div>
-			<div class="reservations_formular-field">
-				<input type="url" name="wantedUrl" id="wantedUrl" placeholder="https://" value="{$wantedUrlInput}" pattern="https://.*" class="textbox" /></div>
+		<div class="reservations_formular-input">
+			<div class="reservations_formular-label">{$lang->reservations_form_type}</div>
+			<div class="reservations_formular-select">
+				<select id="type" name="type">
+					<option value="">{$lang->reservations_form_type_select}</option>
+					{$type_select}
+				</select>
+			</div>
 		</div>
 
-        <div class="reservations_formular-input">
-            <div class="reservations_formular-label">{$lang->reservations_form_player_showthread}</div>
-            <div class="reservations_formular-field">
-                <input type="text" class="textbox" name="playername" id="playername" value="{$playername}" />
-            </div>
-        </div>
+		<div class="reservations_formular-input">
+			<div class="reservations_formular-label">{$lang->reservations_form_reservation}</div>
+			<div class="reservations_formular-field">
+				<input type="text" name="reservation" id="reservation" value="{$reservationInput}" placeholder="{$lang->reservations_form_reservation_placeholder}" class="textbox">
+				<div class="smalltext" id="typeDescription">{$description}</div>
+			</div>
+		</div>
 
-        <div align="center">
+		<div class="reservations_formular-input" id="genderFieldWrapper" style="display: none;">
+			<div class="reservations_formular-label">{$lang->reservations_form_gender}</div>
+			<div class="reservations_formular-select">
+				<select id="gender" name="gender">
+					<option value="">{$lang->reservations_form_gender_select}</option>
+					{$gender_select}
+				</select>
+			</div>
+		</div>
+
+		<div class="reservations_formular-input" id="wantedUrlFieldWrapper" style="display: none;">
+			<div class="reservations_formular-label">Link zum Gesuch:</div>
+			<div class="reservations_formular-field">
+				<input type="url" name="wantedUrl" id="wantedUrl" placeholder="https://" value="{$wantedUrlInput}" pattern="https://.*" class="textbox" />
+			</div>
+		</div>
+
+		<div class="reservations_formular-input">
+			<div class="reservations_formular-label">{$lang->reservations_form_player_showthread}</div>
+			<div class="reservations_formular-field">
+				<input type="text" class="textbox" name="playername" id="playername" value="{$playername}" />
+			</div>
+		</div>
+
+		<div align="center">
 			<input type="hidden" name="tid" value="{$tid}">
-            <input type="submit" class="button" name="reservations_submit" value="{$lang->reservations_form_button}" />
-        </div>
+			<input type="submit" class="button" name="reservations_submit" value="{$lang->reservations_form_button}" />
+		</div>
         </form>
         </div>
         <script type="text/javascript" src="{$mybb->asset_url}/jscripts/reservations/reservations_form.js"></script>
