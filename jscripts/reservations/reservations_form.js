@@ -1,7 +1,8 @@
 document.addEventListener("DOMContentLoaded", function() {
 	const typeSelect = document.getElementById("type");
-	const genderField = document.getElementById("gender");
-	const wantedUrlField = document.getElementById("wantedUrl");
+	const genderField = document.getElementById("genderFieldWrapper");
+	const wantedUrlField = document.getElementById("wantedUrlFieldWrapper");
+	const typeDescription = document.getElementById("typeDescription");
 
 	function toggleFields() {
 		const selectedOption = typeSelect.options[typeSelect.selectedIndex];
@@ -19,6 +20,13 @@ document.addEventListener("DOMContentLoaded", function() {
 				wantedUrlField.style.display = "";
 			} else {
 				wantedUrlField.style.display = "none";
+			}
+
+			// Description anzeigen
+			if (selectedOption.dataset.description) {
+				typeDescription.innerHTML = selectedOption.dataset.description;
+			} else {
+				typeDescription.innerHTML = "";
 			}
 		}
 	}
