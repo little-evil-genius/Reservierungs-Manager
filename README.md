@@ -53,6 +53,9 @@ hinzugefügte Tabelle:
 - reservations_grouppermissions
 - reservations_types
 
+# Neue Aufgabe
+- Reservierungen
+
 # Neue Sprachdateien
 - deutsch_du/admin/reservations.lang.php
 - deutsch_du/reservations.lang.php
@@ -108,6 +111,10 @@ Das Plugin ist kompatibel mit den klassischen Profilfeldern von MyBB und/oder de
 Alle Templates wurden größtenteils ohne Tabellen-Struktur gecodet. Das Layout wurde auf ein MyBB Default Design angepasst.
 
 # Neue Variablen
+- showthread: {$reservations_showthread}
+- header: {$reservations_team} + {$reservations_index}
+- modcp_nav_users: {$nav_reservations}
+- eigene Reservierungen: {$mybb->user['ownreservations']}
 
 # Neues CSS - inplayqscenes.css
 Es wird automatisch in jedes bestehende und neue Design hinzugefügt. Man sollte es einfach einmal abspeichern - auch im Default. Nach einem MyBB Upgrade fehlt der Stylesheets im Masterstyle? Im ACP Modul "RPG Erweiterungen" befindet sich der Menüpunkt "Stylesheets überprüfen" und kann von hinterlegten Plugins den Stylesheet wieder hinzufügen.
