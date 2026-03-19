@@ -1,4 +1,4 @@
-# Reservierungen
+# Reservierungs-Manager
 Dieses Plugin erweitert MyBB um ein flexibles Reservierungssystem. Es ermöglicht, Reservierungen für verschiedene Kategorien - beispielsweise Avatarpersonen, Nachnamen, Canon-Charaktere oder andere forumsspezifische Inhalte - zentral zu verwalten. Reservierungen laufen automatisch nach einer festgelegten Frist ab und werden selbstständig entfernt, sodass das Team keine manuelle Kontrolle oder Pflege übernehmen muss.<br>
 <br>
 Das System ist vollständig kategoriebasiert aufgebaut. Das Team kann beliebig viele Reservierungskategorien anlegen, die jeweils unabhängig voneinander funktionieren.<br>
