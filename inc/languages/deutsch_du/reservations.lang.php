@@ -48,3 +48,6 @@ $l['reservations_redirect_add'] = "Die Reservierung wurde erfolgreich eingetrage
 $l['reservations_redirect_blocked_delete'] = "Die gesperrte Reservierung wurde endgültig gelöscht. Du wirst nun entsprechend zurückgeleitet.";
 $l['reservations_redirect_delete'] = "Die Reservierung wurde erfolgreich gelöscht und gegenbenfalls für ein erneutes reservieren gesperrt. Du wirst nun zurückgeleitet.";
 $l['reservations_redirect_extend'] = "Die Reservierung wurde erfolgreich verlängert. Du wirst nun zurückgeleitet";
+
+$l['reservations_alert'] = "{1} hat deine Reservierung <b>'{2}'</b> eingetragen.";
+$l['myalerts_setting_reservations_alert'] = "Benachrichtigung erhalten, wenn ein Teammitglied deine Reservierung einträgt?";
