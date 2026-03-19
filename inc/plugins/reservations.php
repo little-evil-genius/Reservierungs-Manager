@@ -35,6 +35,9 @@ $plugins->add_hook("modcp_nav", "reservations_modcp_nav");
 $plugins->add_hook("modcp_start", "reservations_modcp");
 $plugins->add_hook('fetch_wol_activity_end', 'reservations_online_activity');
 $plugins->add_hook('build_friendly_wol_location_end', 'reservations_online_location');
+$plugins->add_hook('global_start', 'reservations_register_myalerts_formatter_back_compat'); // Backwards-compatible alert formatter registration hook-ins.
+$plugins->add_hook('xmlhttp', 'reservations_register_myalerts_formatter_back_compat', -2/* Prioritised one higher (more negative) than the MyAlerts hook into xmlhttp */);
+$plugins->add_hook('myalerts_register_client_alert_formatters', 'reservations_register_myalerts_formatter'); // Backwards-compatible alert formatter registration hook-ins.
  
 // Die Informationen, die im Pluginmanager angezeigt werden
 function reservations_info()
@@ -183,6 +186,23 @@ function reservations_uninstall() {
 // Diese Funktion wird aufgerufen, wenn das Plugin aktiviert wird.
 function reservations_activate() {
 
+    global $db, $cache;
+
+    if(class_exists('MybbStuff_MyAlerts_AlertTypeManager')) {
+		$alertTypeManager = MybbStuff_MyAlerts_AlertTypeManager::getInstance();
+
+		if (!$alertTypeManager) {
+			$alertTypeManager = MybbStuff_MyAlerts_AlertTypeManager::createInstance($db, $cache);
+		}
+
+		$alertType = new MybbStuff_MyAlerts_Entity_AlertType();
+		$alertType->setCode('reservations_alert'); // The codename for your alert type. Can be any unique string.
+		$alertType->setEnabled(true);
+		$alertType->setCanBeUserDisabled(true);
+
+		$alertTypeManager->add($alertType);
+    }
+
     // VARIABLEN EINFÜGEN
     require MYBB_ROOT."/inc/adminfunctions_templates.php";
 	find_replace_templatesets('showthread', '#'.preg_quote('{$ratethread}').'#', '{$ratethread} {$reservations_showthread}');
@@ -192,6 +212,18 @@ function reservations_activate() {
  
 // Diese Funktion wird aufgerufen, wenn das Plugin deaktiviert wird.
 function reservations_deactivate() {
+
+    global $db, $cache;
+
+    if (class_exists('MybbStuff_MyAlerts_AlertTypeManager')) {
+		$alertTypeManager = MybbStuff_MyAlerts_AlertTypeManager::getInstance();
+
+		if (!$alertTypeManager) {
+			$alertTypeManager = MybbStuff_MyAlerts_AlertTypeManager::createInstance($db, $cache);
+		}
+
+		$alertTypeManager->deleteByCode('reservations_alert');
+	}
     
     // VARIABLEN ENTFERNEN
     require MYBB_ROOT."/inc/adminfunctions_templates.php";
@@ -2277,6 +2309,8 @@ function reservations_showthread_form() {
         if (empty($errors)) {
 
             $rtid = $mybb->get_input('type');
+            $tid = $mybb->settings['reservations_thread'];
+            $pid = get_thread($tid)['firstpost'];
 
             $playerUID = $db->fetch_field($db->query("SELECT uid FROM ".TABLE_PREFIX."users WHERE username = '".$db->escape_string($mybb->get_input('playername'))."'"), "uid");
             if (!empty($playerUID)) {
@@ -2369,8 +2403,24 @@ function reservations_showthread_form() {
                 "wantedUrl" => $db->escape_string($mybb->get_input('wantedUrl'))
             );
             $db->insert_query("reservations", $insert_reservations);
+            
+            // MyAlert Stuff
+            if(class_exists('MybbStuff_MyAlerts_AlertTypeManager')) {
+    			$alertType = MybbStuff_MyAlerts_AlertTypeManager::getInstance()->getByCode('reservations_alert');
+                if ($alertType != NULL && $alertType->getEnabled()) {
+        			$alert = new MybbStuff_MyAlerts_Entity_Alert((int)$uid, $alertType, (int)$mybb->user['uid']);
+                    $alert->setExtraDetails([
+            			'username' => $mybb->user['username'],
+                        'from' => $mybb->user['uid'],
+                        'tid' => $tid,
+                        'pid' => $pid,
+                        'reservation' => $db->escape_string($mybb->get_input('reservation'))
+                        ]);
+                    MybbStuff_MyAlerts_AlertManager::getInstance()->addAlert($alert);   
+                }	
+            }
 
-            redirect("showthread.php?tid=".$mybb->get_input('tid'), $lang->reservations_redirect_add);
+            redirect("showthread.php?tid=".$tid."&pid=".$pid."#pid".$pid, $lang->reservations_redirect_add);
         } else {
             $reservations_error = inline_error($errors);
         }
@@ -2672,6 +2722,89 @@ function reservations_online_location($plugin_array) {
 	}
 
 	return $plugin_array;
+}
+
+### ALERTS ###
+// Backwards-compatible alert formatter registration.
+function reservations_register_myalerts_formatter_back_compat(){
+
+	global $lang;
+	$lang->load('reservations');
+
+	if (function_exists('myalerts_info')) {
+		$myalerts_info = myalerts_info();
+		if (version_compare($myalerts_info['version'], '2.0.4') <= 0) {
+			reservations_register_myalerts_formatter();
+		}
+	}
+}
+
+// Alert formatter registration.
+function reservations_register_myalerts_formatter(){
+
+	global $mybb, $lang;
+	$lang->load('reservations');
+
+	if (class_exists('MybbStuff_MyAlerts_Formatter_AbstractFormatter') &&
+	    class_exists('MybbStuff_MyAlerts_AlertFormatterManager') &&
+	    !class_exists('reservationsAlertFormatter')
+	) {
+		class reservationsAlertFormatter extends MybbStuff_MyAlerts_Formatter_AbstractFormatter
+		{
+			/**
+			* Format an alert into it's output string to be used in both the main alerts listing page and the popup.
+			*
+			* @param MybbStuff_MyAlerts_Entity_Alert $alert The alert to format.
+			*
+			* @return string The formatted alert string.
+			*/
+			public function formatAlert(MybbStuff_MyAlerts_Entity_Alert $alert, array $outputAlert)
+			{
+				$alertContent = $alert->getExtraDetails();
+				return $this->lang->sprintf(
+					$this->lang->reservations_alert,
+					$outputAlert['from_user'],
+					$alertContent['reservation']
+				);
+		
+			}
+
+			/**
+			* Init function called before running formatAlert(). Used to load language files and initialize other required
+			* resources.
+			*
+			* @return void
+			*/
+			public function init()
+			{
+				if (!$this->lang->reservations_alert) {
+					$this->lang->load('reservations');
+				}
+			}
+		
+			/**
+			* Build a link to an alert's content so that the system can redirect to it.
+			*
+			* @param MybbStuff_MyAlerts_Entity_Alert $alert The alert to build the link for.
+			*
+			* @return string The built alert, preferably an absolute link.
+			*/
+			public function buildShowLink(MybbStuff_MyAlerts_Entity_Alert $alert)
+			{
+				$alertContent = $alert->getExtraDetails();
+				$postLink = $this->mybb->settings['bburl'] . '/' . get_post_link((int)$alertContent['pid'], (int)$alertContent['tid']).'#pid'.(int)$alertContent['pid'];
+				return $postLink;
+			}
+		}
+
+		$formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::getInstance();
+		if (!$formatterManager) {
+		        $formatterManager = MybbStuff_MyAlerts_AlertFormatterManager::createInstance($mybb, $lang);
+		}
+		if ($formatterManager) {
+			$formatterManager->registerFormatter(new reservationsAlertFormatter($mybb, $lang, 'reservations_alert'));
+		}
+	}
 }
 
 #########################
