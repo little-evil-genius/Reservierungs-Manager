@@ -4781,7 +4781,7 @@ function reservations_settings($type = 'install') {
         ),
         'reservations_global' => array(
             'title' => 'Anzeige eigener Reservierungen',
-            'description' => 'Soll es eine globale Variable geben, die die eigenen Reservierungen ausliest?<br>{$mybb->user[\'ownreservations\']}',
+            'description' => 'Soll es eine globale Variable geben, die die eigenen Reservierungen ausliest?',
             'optionscode' => 'yesno',
             'value' => '0', // Default
             'disporder' => 12
