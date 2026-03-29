@@ -48,7 +48,7 @@ function reservations_info()
 		"website"	=> "https://github.com/little-evil-genius/Reservierungs-Manager",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0",
+		"version"	=> "1.0.1",
 		"compatibility" => "18*"
 	);
 }
@@ -2082,7 +2082,7 @@ function reservations_misc() {
         $rid = $mybb->get_input('rid');
         $ext = $db->fetch_array($db->simple_select('reservations', '*', 'rid = '.$rid));
 
-        if ($ext['uid'] != 0 && !empty(get_user($ex['uid']))) {
+        if ($ext['uid'] != 0 && !empty(get_user($ext['uid']))) {
             $uid = $ext['uid'];
             $rtid = $ext['type'];
 
@@ -3006,7 +3006,7 @@ function reservations_validate_data($rid = ''){
 
     // Neue UID
     if (empty(get_user($uid))) {
-        $newUID = $mybb->get_input('reservation');
+        $newUID = $mybb->get_input('newUID');
 
         if (empty($newUID)) {
             $errors[] = $lang->reservations_data_form_error_newUID;
