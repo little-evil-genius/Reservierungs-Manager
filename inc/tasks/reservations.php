@@ -7,6 +7,7 @@ function task_reservations($task){
     $query_reservations = $db->query("SELECT uid, type, rid  FROM ".TABLE_PREFIX."reservations
     WHERE enddate < CURDATE()
     AND lockcheck = 0
+    AND endlessNote = 0
     ");
 
     while($res = $db->fetch_array($query_reservations)) {
