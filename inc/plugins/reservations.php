@@ -48,7 +48,7 @@ function reservations_info()
 		"website"	=> "https://github.com/little-evil-genius/Reservierungs-Manager",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0.1",
+		"version"	=> "1.0.2",
 		"compatibility" => "18*"
 	);
 }
@@ -2532,6 +2532,7 @@ function reservations_global() {
     AND uid IN (".$userids_list.")
     AND lockcheck = 0
     AND showindex = 1
+    AND endlessNote = 0
     ORDER BY enddate ASC;
     ");
 
@@ -4173,7 +4174,7 @@ function reservations_user_entry($res, $return = '') {
     $wantedUrl = $res['wantedUrl'];
 
     if (!empty($wantedUrl)) {
-        $wanted = "<a href\"".$wantedUrl."\">".$lang->reservations_entry_wanted."</a>";
+        $wanted = "<a href=\"".$wantedUrl."\">".$lang->reservations_entry_wanted."</a>";
     }
 
     // endlosse reservierung
