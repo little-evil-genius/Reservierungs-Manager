@@ -117,7 +117,7 @@ Alle Templates wurden größtenteils ohne Tabellen-Struktur gecodet. Das Layout 
 - modcp_nav_users: {$nav_reservations}
 - eigene Reservierungen: {$mybb->user['ownreservations']}
 
-# Neues CSS - inplayqscenes.css
+# Neues CSS - reservations.css
 Es wird automatisch in jedes bestehende und neue Design hinzugefügt. Man sollte es einfach einmal abspeichern - auch im Default. Nach einem MyBB Upgrade fehlt der Stylesheets im Masterstyle? Im ACP Modul "RPG Erweiterungen" befindet sich der Menüpunkt "Stylesheets überprüfen" und kann von hinterlegten Plugins den Stylesheet wieder hinzufügen.
 ```css
 .reservations-desc {
