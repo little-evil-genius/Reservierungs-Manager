@@ -48,7 +48,7 @@ function reservations_info()
 		"website"	=> "https://github.com/little-evil-genius/Reservierungs-Manager",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0.2",
+		"version"	=> "1.0.3",
 		"compatibility" => "18*"
 	);
 }
@@ -3958,13 +3958,28 @@ function reservations_validate_entry() {
             }
         }
 
-        // Vergleich mit Reservierungseinträgen
+        // Vergleich mit aktiven Reservierungseinträgen
         $checkRes = $db->fetch_field($db->query("SELECT reservation FROM ".TABLE_PREFIX."reservations 
         WHERE LOWER(reservation) = '".$reservation."'
+        AND lockcheck = 0
         "), "reservation");
 
         if (!empty($checkRes)) {
             $errors[] = $lang->reservations_form_error_check_res;
+        }
+
+        
+        // Vergleich mit gesperrten Reservierungseinträgen
+        if ($uid != 0) {
+            $checkResLock = $db->fetch_field($db->query("SELECT reservation FROM ".TABLE_PREFIX."reservations 
+            WHERE LOWER(reservation) = '".$reservation."'
+            AND lockcheck = 1
+            AND uid = ".$uid."        
+            "), "reservation");
+
+            if (!empty($checkResLock)) {
+                $errors[] = $lang->reservations_form_error_check_res_lock;
+            }
         }
     }
 
