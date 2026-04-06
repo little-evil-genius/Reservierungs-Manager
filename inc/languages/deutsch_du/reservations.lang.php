@@ -21,6 +21,7 @@ $l['reservations_form_error_locknote'] = "Beachte, dass die gesperrten Reservier
 $l['reservations_form_error_reservation'] = "Die Reservierung fehlt. Bitte trage eine Reservierung ein.";
 $l['reservations_form_error_check_forum'] = "Diese Reservierung ist schon vergeben im Forum.";
 $l['reservations_form_error_check_res'] = "Diese Reservierung ist aktuell schon reserviert.";
+$l['reservations_form_error_check_res_lock'] = "Diese Reservierung ist aktuell für dich gesperrt.";
 
 $l['reservations_entry_user'] = "für {1}";
 $l['reservations_entry_endDate'] = "bis {1}";
