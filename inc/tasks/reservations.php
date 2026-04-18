@@ -37,6 +37,7 @@ function task_reservations($task){
 
                 if (!empty($additionalgroups)) {
                     $additionalgroups = explode(",", $additionalgroups);
+                    $locknote = null;
                     foreach ($additionalgroups as $additionalgroup) {
                         $lockDays = $db->fetch_field($db->query("SELECT lockcount FROM ".TABLE_PREFIX."reservations_grouppermissions
                         WHERE rtid = ".$rtid."
@@ -48,7 +49,7 @@ function task_reservations($task){
                         }
                     }
                         
-                    if (empty($lockDays)) {
+                    if ($lockDays === null) {
                         $usergroup = get_user($uid)['usergroup'];
                         $lockDays = $db->fetch_field($db->query("SELECT lockcount FROM ".TABLE_PREFIX."reservations_grouppermissions
                         WHERE rtid = ".$rtid."
