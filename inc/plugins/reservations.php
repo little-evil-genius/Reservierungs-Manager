@@ -48,7 +48,7 @@ function reservations_info()
 		"website"	=> "https://github.com/little-evil-genius/Reservierungs-Manager",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0.3",
+		"version"	=> "1.0.4",
 		"compatibility" => "18*"
 	);
 }
@@ -2020,6 +2020,7 @@ function reservations_misc() {
 
                 if (!empty($additionalgroups)) {
                     $additionalgroups = explode(",", $additionalgroups);
+                    $lockDays = null;
                     foreach ($additionalgroups as $additionalgroup) {
                         $lockDays = $db->fetch_field($db->query("SELECT lockcount FROM ".TABLE_PREFIX."reservations_grouppermissions
                         WHERE rtid = ".$rtid."
@@ -2031,7 +2032,7 @@ function reservations_misc() {
                         }
                     }
                         
-                    if (empty($lockDays)) {
+                    if ($lockDays === null) {
                         $usergroup = get_user($uid)['usergroup'];
                         $lockDays = $db->fetch_field($db->query("SELECT lockcount FROM ".TABLE_PREFIX."reservations_grouppermissions
                         WHERE rtid = ".$rtid."
@@ -2149,6 +2150,7 @@ function reservations_misc() {
                     if (!empty($additionalgroups)) {
 
                         $additionalgroups = explode(",", $additionalgroups);
+                        $durationDays = null;
                         foreach ($additionalgroups as $additionalgroup) {
                             $durationDays = $db->fetch_field($db->query("SELECT duration FROM ".TABLE_PREFIX."reservations_grouppermissions
                             WHERE rtid = ".$rtid."
@@ -2160,7 +2162,7 @@ function reservations_misc() {
                             }
                         }
                         
-                        if (empty($durationDays)) {
+                        if ($durationDays === null) {
                             $usergroup = get_user($uid)['usergroup'];
 
                             $durationDays = $db->fetch_field($db->query("SELECT duration FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -2344,6 +2346,7 @@ function reservations_showthread_form() {
                     if (!empty($additionalgroups)) {
 
                         $additionalgroups = explode(",", $additionalgroups);
+                        $durationDays = null;
                         foreach ($additionalgroups as $additionalgroup) {
                             $durationDays = $db->fetch_field($db->query("SELECT duration FROM ".TABLE_PREFIX."reservations_grouppermissions
                             WHERE rtid = ".$rtid."
@@ -2355,7 +2358,7 @@ function reservations_showthread_form() {
                             }
                         }
                         
-                        if (empty($durationDays)) {
+                        if ($durationDays === null) {
                             $usergroup = get_user($uid)['usergroup'];
 
                             $durationDays = $db->fetch_field($db->query("SELECT duration FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -2916,6 +2919,8 @@ function reservations_validate_data($rid = ''){
                     if (!empty($additionalgroups)) {
                         $additionalgroups = explode(",", $additionalgroups);
 
+                        $maxcount = null;
+                        $locknote = null;
                         foreach ($additionalgroups as $additionalgroup) {
                             $limits_query = $db->fetch_array($db->query("SELECT maxcount, locknote FROM ".TABLE_PREFIX."reservations_grouppermissions
                             WHERE rtid = ".$type."    
@@ -2928,7 +2933,7 @@ function reservations_validate_data($rid = ''){
                             }                      
                         }
                     
-                        if (empty($maxcount)) {      
+                        if ($maxcount === null) {      
                             $usergroup = get_user($uid)['usergroup'];
                         
                             $maxcount = $db->fetch_field($db->query("SELECT maxcount FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -2937,7 +2942,7 @@ function reservations_validate_data($rid = ''){
                             "), "maxcount");
                         }
                     
-                        if (empty($locknote)) {  
+                        if ($locknote === null) {  
                             $usergroup = get_user($uid)['usergroup'];
 
                             $locknote = $db->fetch_field($db->query("SELECT locknote FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -3039,6 +3044,8 @@ function reservations_validate_data($rid = ''){
                     if (!empty($additionalgroups)) {
                         $additionalgroups = explode(",", $additionalgroups);
 
+                        $maxcount = null;
+                        $locknote = null;
                         foreach ($additionalgroups as $additionalgroup) {
                             $limits_query = $db->fetch_array($db->query("SELECT maxcount, locknote FROM ".TABLE_PREFIX."reservations_grouppermissions
                             WHERE rtid = ".$type."    
@@ -3051,7 +3058,7 @@ function reservations_validate_data($rid = ''){
                             }                      
                         }
                     
-                        if (empty($maxcount)) {      
+                        if ($maxcount === null) {      
                             $usergroup = get_user($newUID)['usergroup'];
                         
                             $maxcount = $db->fetch_field($db->query("SELECT maxcount FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -3060,7 +3067,7 @@ function reservations_validate_data($rid = ''){
                             "), "maxcount");
                         }
                     
-                        if (empty($locknote)) {  
+                        if ($locknote === null) {  
                             $usergroup = get_user($newUID)['usergroup'];
 
                             $locknote = $db->fetch_field($db->query("SELECT locknote FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -3357,7 +3364,8 @@ function reservations_output_page($return = '') {
                         $reservations_user = "";
                         foreach ($reservations as $res) {
                             // üperprüfung Gruppe
-                            if ($res['gid'] == "" || !in_array($res['gid'], $usergroupIDs)) {
+                            $effectiveRgid = reservations_get_user_grouppermission($res['uid'], $rtid);
+                            if ($effectiveRgid == "" || !in_array($effectiveRgid, explode(',', $rgidCsv))) {
                                 continue;
                             }
         
@@ -3376,8 +3384,9 @@ function reservations_output_page($return = '') {
 
                     $reservations_bit = "";
                     foreach ($reservations as $res) {
-                        if ($res['gid'] == "" || !in_array($res['gid'], $usergroupIDs)) {
-                            continue;                 
+                        $effectiveRgid = reservations_get_user_grouppermission($res['uid'], $rtid);
+                        if (!in_array($effectiveRgid, explode(',', $rgidCsv))) {
+                            continue;
                         }
 
                         $reservations_bit .= reservations_user_entry($res, $return);              
@@ -3490,7 +3499,8 @@ function reservations_output_page_tabs($return = '') {
                         $reservations_user = "";
                         foreach ($reservations as $res) {
                             // üperprüfung Gruppe
-                            if ($res['gid'] == "" || !in_array($res['gid'], $usergroupIDs)) {
+                            $effectiveRgid = reservations_get_user_grouppermission($res['uid'], $rtid);
+                            if (!in_array($effectiveRgid, explode(',', $rgidCsv))) {
                                 continue;
                             }
         
@@ -3509,8 +3519,9 @@ function reservations_output_page_tabs($return = '') {
 
                     $reservations_bit = "";
                     foreach ($reservations as $res) {
-                        if ($res['gid'] == "" || !in_array($res['gid'], $usergroupIDs)) {
-                            continue;                 
+                        $effectiveRgid = reservations_get_user_grouppermission($res['uid'], $rtid);
+                        if (!in_array($effectiveRgid, explode(',', $rgidCsv))) {
+                            continue;
                         }
 
                         $reservations_bit .= reservations_user_entry($res, $return);                
@@ -3813,6 +3824,8 @@ function reservations_validate_entry() {
 
                     $additionalgroups = explode(",", $additionalgroups);
 
+                    $maxcount = null;
+                    $locknote = null;
                     foreach ($additionalgroups as $additionalgroup) {
 
                         $limits_query = $db->fetch_array($db->query("SELECT maxcount, locknote FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -3825,8 +3838,12 @@ function reservations_validate_entry() {
                             break;    
                         }                      
                     }
+
+                    echo $maxcount;
+                    echo "<br>".$locknote;
                     
-                    if (empty($maxcount)) {      
+                    if ($maxcount === null) {    
+                        echo "<br>test";  
                         $usergroup = get_user($uid)['usergroup'];
                         
                         $maxcount = $db->fetch_field($db->query("SELECT maxcount FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -3835,7 +3852,7 @@ function reservations_validate_entry() {
                         "), "maxcount");
                     }
 
-                    if (empty($locknote)) {  
+                    if ($locknote  === null) {  
 
                         $usergroup = get_user($uid)['usergroup'];
 
@@ -4476,6 +4493,9 @@ function reservations_extendOptions($uid, $rtid) {
 
         if (!empty($additionalgroups)) {
             $additionalgroups = explode(",", $additionalgroups);
+
+            $extendDays = null;
+            $extendLimit = null;
             foreach ($additionalgroups as $additionalgroup) {
                 $extendDays = $db->fetch_field($db->query("SELECT extendtime FROM ".TABLE_PREFIX."reservations_grouppermissions
                 WHERE rtid = ".$rtid."
@@ -4496,7 +4516,7 @@ function reservations_extendOptions($uid, $rtid) {
                 }
             }
                         
-            if (empty($extendDays)) {
+            if ($extendDays  === null) {
                 $usergroup = get_user($uid)['usergroup'];
     
                 $extendDays = $db->fetch_field($db->query("SELECT extendtime FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -4505,7 +4525,7 @@ function reservations_extendOptions($uid, $rtid) {
                 "), "extendtime");
             }   
                         
-            if (empty($extendLimit)) {
+            if ($extendLimit === null) {
                 $usergroup = get_user($uid)['usergroup'];
 
                 $extendLimit = $db->fetch_field($db->query("SELECT extendcount FROM ".TABLE_PREFIX."reservations_grouppermissions
@@ -4631,12 +4651,49 @@ function reservations_ownreservations($uid) {
         $lockdate = $lockDate->format('d.m.Y');
         $diff = $lockDate->diff($today);
         $remainingDays = (int)$diff->format('%a');
+        $reservations_entry_endDate = $lang->sprintf($lang->reservations_entry_endDate, $lockdate);
+        $reservations_entry_remainingDays = $lang->sprintf($lang->reservations_entry_remainingDays, $remainingDays);
         
         eval("\$blocked .= \"".$templates->get("reservations_own_reservations")."\";");           
     }
 
     eval("\$ownreservations = \"".$templates->get("reservations_own")."\";");
     return $ownreservations;
+}
+
+function reservations_get_user_grouppermission($uid, $rtid) {
+    
+    global $db, $mybb;
+
+    $grouppermissionSetting = $mybb->settings['reservations_grouppermission'];
+
+    if ($grouppermissionSetting == 1) {
+        $additionalgroups = get_user($uid)['additionalgroups'];
+
+        if (!empty($additionalgroups)) {
+            $additionalgroups = explode(",", $additionalgroups);
+
+            foreach ($additionalgroups as $additionalgroup) {
+                $query = $db->fetch_field($db->query("
+                    SELECT rgid FROM ".TABLE_PREFIX."reservations_grouppermissions
+                    WHERE rtid = ".$rtid."
+                    AND (concat(',',usergroups,',') LIKE '%,".$additionalgroup.",%')
+                "), "rgid");
+
+                if (!empty($query)) {
+                    return $query;
+                }
+            }
+        }
+    }
+
+    $usergroup = get_user($uid)['usergroup'];
+    $rgid = $db->fetch_field($db->query("SELECT rgid FROM ".TABLE_PREFIX."reservations_grouppermissions
+    WHERE rtid = ".$rtid."
+    AND (concat(',',usergroups,',') LIKE '%,".$usergroup.",%')
+    "), "rgid");
+
+    return $rgid;
 }
 
 #####################################################
