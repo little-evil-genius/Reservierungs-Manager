@@ -48,7 +48,7 @@ function reservations_info()
 		"website"	=> "https://github.com/little-evil-genius/Reservierungs-Manager",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0.4",
+		"version"	=> "1.0.5",
 		"compatibility" => "18*"
 	);
 }
@@ -1479,6 +1479,8 @@ function reservations_admin_manage() {
 		// Add to page navigation
 		$page->add_breadcrumb_item($lang->reservations_data_breadcrumb_main);
 
+        $character_array = array_keys(reservations_get_allchars($mybb->user['uid']));
+
         // einzelne Typen
         $query_types = $db->query("SELECT rtid, identification, title, gender FROM ".TABLE_PREFIX."reservations_types
         ORDER BY disporder ASC, title ASC        
@@ -1631,7 +1633,7 @@ function reservations_admin_manage() {
                     $lang->reservations_options_popup_data_edit,        
                     "index.php?module=rpgstuff-reservations_data&amp;action=edit_data&amp;rid=".$rid
                 );
-                if (empty(get_user($uid))) {
+                if (!in_array($uid, $character_array)) {
                     $popup->add_item(
                         $lang->reservations_options_popup_data_delete,
                         "index.php?module=rpgstuff-reservations_data&amp;action=delete_data&amp;rid=".$rid."&amp;my_post_key={$mybb->post_code}", 
