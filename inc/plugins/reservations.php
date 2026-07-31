@@ -48,7 +48,7 @@ function reservations_info()
 		"website"	=> "https://github.com/little-evil-genius/Reservierungs-Manager",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0.5",
+		"version"	=> "1.0.6",
 		"compatibility" => "18*"
 	);
 }
@@ -4669,31 +4669,42 @@ function reservations_get_user_grouppermission($uid, $rtid) {
 
     $grouppermissionSetting = $mybb->settings['reservations_grouppermission'];
 
-    if ($grouppermissionSetting == 1) {
+    if($uid == 0) {
+        $usergroup = 1;
+        $additionalgroups = '';
+    } else {
+        $usergroup = get_user($uid)['usergroup'];
         $additionalgroups = get_user($uid)['additionalgroups'];
+    }
+
+    if ($grouppermissionSetting == 1) {
 
         if (!empty($additionalgroups)) {
             $additionalgroups = explode(",", $additionalgroups);
 
             foreach ($additionalgroups as $additionalgroup) {
-                $query = $db->fetch_field($db->query("
+                $rgid = $db->fetch_field($db->query("
                     SELECT rgid FROM ".TABLE_PREFIX."reservations_grouppermissions
                     WHERE rtid = ".$rtid."
                     AND (concat(',',usergroups,',') LIKE '%,".$additionalgroup.",%')
                 "), "rgid");
 
-                if (!empty($query)) {
-                    return $query;
+                if (!empty($rgid)) {
+                    return $rgid;
                 }
             }
+        } else {
+            $rgid = $db->fetch_field($db->query("SELECT rgid FROM ".TABLE_PREFIX."reservations_grouppermissions
+            WHERE rtid = ".$rtid."
+            AND (concat(',',usergroups,',') LIKE '%,".$usergroup.",%')
+            "), "rgid");
         }
+    } else {
+        $rgid = $db->fetch_field($db->query("SELECT rgid FROM ".TABLE_PREFIX."reservations_grouppermissions
+        WHERE rtid = ".$rtid."
+        AND (concat(',',usergroups,',') LIKE '%,".$usergroup.",%')
+        "), "rgid");
     }
-
-    $usergroup = get_user($uid)['usergroup'];
-    $rgid = $db->fetch_field($db->query("SELECT rgid FROM ".TABLE_PREFIX."reservations_grouppermissions
-    WHERE rtid = ".$rtid."
-    AND (concat(',',usergroups,',') LIKE '%,".$usergroup.",%')
-    "), "rgid");
 
     return $rgid;
 }
